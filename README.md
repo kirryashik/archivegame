@@ -28,6 +28,7 @@ https://github.com/kirryashik/archivegame/tree/archive-card-game-328216643643701
 Клиент: HTML, CSS, JavaScript (Canvas)
 
 # Как запустить игру:
+# Установить Node.js
 # Установить зависимости (через cmd в папке с файлами игры)
 npm init -y
 npm install ws
