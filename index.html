@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive Card Game</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50; color: white;
+            overflow: hidden; user-select: none;
+        }
+
+        /* Screens */
+        #login-screen, #game-screen {
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+        }
+        #game-screen { display: none; background: radial-gradient(circle, #27ae60 0%, #2c3e50 100%); }
+
+        /* Login UI */
+        #login-screen {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .login-box {
+            background: rgba(0,0,0,0.5); padding: 30px; border-radius: 10px; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .login-box input {
+            display: block; width: 100%; margin: 10px 0; padding: 10px; box-sizing: border-box;
+            border-radius: 5px; border: none; font-size: 16px;
+        }
+        .login-box button {
+            background: #2980b9; color: white; border: none; padding: 10px 20px; font-size: 16px;
+            border-radius: 5px; cursor: pointer; margin-top: 10px; width: 100%;
+        }
+        .login-box button:hover { background: #3498db; }
+
+        /* Game UI */
+        #table {
+            position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;
+        }
+
+        #center-area {
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        #community-cards {
+            display: flex; gap: 10px; margin-bottom: 20px; min-height: 120px;
+        }
+        #pot { font-size: 24px; font-weight: bold; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px; }
+
+        #combat-area {
+            position: absolute; top: 25%; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 20px;
+        }
+
+        /* Players */
+        .player-spot {
+            position: absolute; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px;
+            text-align: center; width: 150px;
+        }
+        #player-top { top: 20px; left: 50%; transform: translateX(-50%); }
+        #player-left { top: 50%; left: 20px; transform: translateY(-50%); }
+        #player-right { top: 50%; right: 20px; transform: translateY(-50%); }
+
+        .player-name { font-weight: bold; font-size: 18px; }
+        .player-info { font-size: 14px; margin-top: 5px; }
+        .active-turn { box-shadow: 0 0 15px #f1c40f; border: 2px solid #f1c40f; }
+
+        /* Own Player Area */
+        #bottom-area {
+            position: absolute; bottom: 0; width: 100%; height: 200px;
+            display: flex; justify-content: space-between; align-items: flex-end; padding: 20px; box-sizing: border-box;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+        }
+
+        #own-hand {
+            display: flex; justify-content: center; flex-grow: 1; position: relative; gap: -30px;
+        }
+
+        #own-archive {
+            width: 150px; height: 100px; border: 2px dashed #bdc3c7; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; position: relative;
+        }
+
+        #controls {
+            width: 250px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;
+        }
+        #controls button {
+            background: #e67e22; color: white; border: none; padding: 10px 15px; border-radius: 5px;
+            cursor: pointer; font-weight: bold; flex: 1 1 45%;
+        }
+        #controls button:disabled { background: #7f8c8d; cursor: not-allowed; }
+        #controls button:hover:not(:disabled) { background: #d35400; }
+
+        /* Chat */
+        #chat {
+            position: absolute; left: 20px; bottom: 20px; width: 250px; height: 150px;
+            background: rgba(0,0,0,0.6); border-radius: 10px; display: flex; flex-direction: column;
+        }
+        #chat-messages { flex-grow: 1; overflow-y: auto; padding: 10px; font-size: 12px; }
+        #chat-input-area { display: flex; border-top: 1px solid #7f8c8d; }
+        #chat-input { flex-grow: 1; border: none; background: transparent; color: white; padding: 5px; }
+        #chat-btn { background: #2980b9; border: none; color: white; cursor: pointer; padding: 0 10px; }
+
+        /* Cards */
+        .card {
+            width: 80px; height: 115px; background: white; border-radius: 8px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5); position: relative;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; transition: transform 0.2s, margin-top 0.2s;
+            cursor: pointer; margin-left: -20px;
+        }
+        .card:first-child { margin-left: 0; }
+        .card.red { color: #c0392b; }
+        .card.black { color: #2c3e50; }
+        .card.back {
+            background: repeating-linear-gradient(45deg, #2980b9, #2980b9 10px, #34495e 10px, #34495e 20px);
+            color: transparent;
+        }
+        .card:hover { transform: translateY(-20px); z-index: 10; }
+        .card.selected { transform: translateY(-30px); border: 2px solid #f1c40f; z-index: 10; }
+
+        .card-corner {
+            position: absolute; top: 5px; left: 5px; font-size: 14px; display: flex; flex-direction: column; line-height: 1;
+        }
+        .card-corner-br {
+            position: absolute; bottom: 5px; right: 5px; font-size: 14px; display: flex; flex-direction: column; line-height: 1; transform: rotate(180deg);
+        }
+
+        /* Overlay */
+        #overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 100;
+        }
+        #overlay h1 { font-size: 48px; margin: 0; }
+        #overlay p { font-size: 24px; }
+        #overlay button { margin-top: 20px; padding: 10px 20px; font-size: 18px; }
+
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h2>Archive Card Game</h2>
+        <input type="text" id="playerName" placeholder="Your Name" value="Player">
+        <input type="text" id="roomId" placeholder="Room ID" value="room1">
+        <button id="btn-join">Join Room</button>
+    </div>
+</div>
+
+<div id="game-screen">
+    <div id="table">
+        <div class="player-spot" id="player-top" style="display: none;"></div>
+        <div class="player-spot" id="player-left" style="display: none;"></div>
+        <div class="player-spot" id="player-right" style="display: none;"></div>
+
+        <div id="center-area">
+            <div id="combat-area"></div>
+            <div id="community-cards"></div>
+            <div id="pot">Pot: 0</div>
+            <div id="phase-info" style="margin-top:10px; font-weight:bold; color:#f1c40f;">Phase: Waiting</div>
+        </div>
+
+        <div id="chat">
+            <div id="chat-messages"></div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Message...">
+                <button id="chat-btn">Send</button>
+            </div>
+        </div>
+
+        <div id="bottom-area">
+            <div>
+                <div id="own-info" style="margin-bottom: 10px;">Chips: 0 | Bet: 0</div>
+                <button id="btn-ready" style="background:#27ae60; padding:10px; color:white; border:none; border-radius:5px; cursor:pointer;">Ready / Add Bot</button>
+            </div>
+
+            <div id="own-hand"></div>
+
+            <div style="display:flex; flex-direction:column; align-items:center;">
+                <div style="margin-bottom: 5px;">Archive (<span id="archive-count">0</span>)</div>
+                <div id="own-archive"></div>
+            </div>
+
+            <div id="controls">
+                <button id="btn-check">Check</button>
+                <button id="btn-call">Call</button>
+                <button id="btn-raise">Raise 10</button>
+                <button id="btn-fold">Fold</button>
+                <button id="btn-attack">Attack</button>
+                <button id="btn-defend">Defend</button>
+                <button id="btn-decline">Decline/Skip</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="overlay">
+    <h1 id="overlay-title">Showdown!</h1>
+    <p id="overlay-desc">Winner: Alex with Flush</p>
+    <button id="btn-next">Next Round</button>
+</div>
+
+<script>
+    let ws;
+    let myPlayerId = null;
+    let currentRoomId = null;
+    let currentState = null;
+    let selectedCardId = null;
+
+    // Elements
+    const loginScreen = document.getElementById('login-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const btnJoin = document.getElementById('btn-join');
+    const playerNameInput = document.getElementById('playerName');
+    const roomIdInput = document.getElementById('roomId');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatBtn = document.getElementById('chat-btn');
+    const overlay = document.getElementById('overlay');
+    const btnReady = document.getElementById('btn-ready');
+
+    btnJoin.addEventListener('click', connect);
+
+    function connect() {
+        const name = playerNameInput.value.trim();
+        const room = roomIdInput.value.trim();
+        if (!name || !room) return;
+        initAudio();
+
+        // Automatically determine WebSocket URL based on host
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.host || 'localhost:8080';
+        ws = new WebSocket(`${wsProtocol}//${wsHost}`);
+
+        ws.onopen = () => {
+            console.log('Connected to server');
+            loginScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            currentRoomId = room;
+
+            ws.send(JSON.stringify({ type: 'join', roomId: room, playerName: name }));
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'state') {
+                currentState = data.state;
+                if (!myPlayerId) {
+                    const me = currentState.players.find(p => p.name === name);
+                    if (me) myPlayerId = me.id;
+                }
+                renderState();
+            } else if (data.type === 'chat') {
+                addChatMessage(`${data.player}: ${data.message}`);
+            } else if (data.type === 'event') {
+                addChatMessage(`>> ${data.player} ${data.event === 'cardPlayed' ? 'played ' + data.card : data.event}`);
+                playSound('card');
+            } else if (data.type === 'winner') {
+                overlay.style.display = 'flex';
+                document.getElementById('overlay-title').innerText = `${data.winner} Wins!`;
+                document.getElementById('overlay-desc').innerText = `Combination: ${data.combination}`;
+                playSound('win');
+            } else if (data.type === 'error') {
+                console.error(data.message);
+                alert(data.message);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('Disconnected. Reconnecting in 3s...');
+            setTimeout(connect, 3000);
+        };
+    }
+
+    function sendAction(action, extraParams = {}) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({ type: 'action', roomId: currentRoomId, action, ...extraParams }));
+        selectedCardId = null;
+        renderState(); // Immediate UI update to clear selection
+    }
+
+    chatBtn.addEventListener('click', () => {
+        const msg = chatInput.value.trim();
+        if (msg && ws) {
+            ws.send(JSON.stringify({ type: 'chat', roomId: currentRoomId, message: msg }));
+            chatInput.value = '';
+        }
+    });
+
+    btnReady.addEventListener('click', (e) => {
+        if (!currentState) return;
+        // If holding shift, add a bot (secret feature)
+        if (e.shiftKey) {
+            ws.send(JSON.stringify({ type: 'addBot', roomId: currentRoomId }));
+        } else {
+            ws.send(JSON.stringify({ type: 'ready', roomId: currentRoomId }));
+        }
+    });
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+        overlay.style.display = 'none';
+        ws.send(JSON.stringify({ type: 'ready', roomId: currentRoomId }));
+    });
+
+    // Audio Context Setup
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'card') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'win') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(554, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        }
+    }
+
+    function addChatMessage(msg) {
+        const div = document.createElement('div');
+        div.innerText = msg;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function createCardElement(card, isBack = false) {
+        const div = document.createElement('div');
+        div.className = 'card';
+        if (isBack) {
+            div.classList.add('back');
+            return div;
+        }
+
+        const isRed = card.suit === '♥' || card.suit === '♦';
+        if (isRed) div.classList.add('red');
+        else div.classList.add('black');
+
+        div.innerHTML = `
+            <div class="card-corner">${card.rank}<br>${card.suit}</div>
+            <div style="font-size:36px;">${card.suit}</div>
+            <div class="card-corner-br">${card.rank}<br>${card.suit}</div>
+        `;
+        div.dataset.id = card.id;
+
+        div.addEventListener('click', () => {
+            if (currentState.currentTurn !== myPlayerId) return;
+            // Deselect others
+            document.querySelectorAll('#own-hand .card').forEach(c => c.classList.remove('selected'));
+            selectedCardId = card.id;
+            div.classList.add('selected');
+        });
+
+        return div;
+    }
+
+    function renderState() {
+        if (!currentState || !myPlayerId) return;
+
+        const s = currentState;
+        document.getElementById('pot').innerText = `Pot: ${s.pot}`;
+        document.getElementById('phase-info').innerText = `Phase: ${s.phase.toUpperCase()}`;
+
+        // Buttons
+        const isMyTurn = s.currentTurn === myPlayerId;
+        const ctrls = document.getElementById('controls').children;
+        for(let btn of ctrls) btn.disabled = true;
+
+        if (isMyTurn && s.phase === 'betting') {
+            document.getElementById('btn-check').disabled = false;
+            document.getElementById('btn-call').disabled = false;
+            document.getElementById('btn-raise').disabled = false;
+            document.getElementById('btn-fold').disabled = false;
+        } else if (isMyTurn && s.phase === 'attack') {
+            document.getElementById('btn-attack').disabled = false;
+            document.getElementById('btn-decline').disabled = false;
+        } else if (isMyTurn && s.phase === 'defense') {
+            document.getElementById('btn-defend').disabled = false;
+            document.getElementById('btn-decline').disabled = false;
+        }
+
+        // Action bindings (only bind once, so remove and add if needed, or just define them outside. Defined outside is better).
+
+        // Center Area
+        const commContainer = document.getElementById('community-cards');
+        commContainer.innerHTML = '';
+        for (let i = 0; i < 5; i++) {
+            if (i < s.communityCards.length) {
+                const card = s.communityCards[i];
+                const revealed = s.communityRevealed[i];
+                commContainer.appendChild(createCardElement(card, !revealed));
+            } else {
+                // Placeholder
+                const empty = document.createElement('div');
+                empty.style.width = '80px'; empty.style.height = '115px'; empty.style.border = '2px dashed #7f8c8d'; empty.style.borderRadius = '8px';
+                commContainer.appendChild(empty);
+            }
+        }
+
+        // Combat Area
+        const combatArea = document.getElementById('combat-area');
+        combatArea.innerHTML = '';
+        if (s.combat && s.combat.attackCard) {
+            combatArea.appendChild(createCardElement(s.combat.attackCard, false));
+        }
+
+        // Players
+        const me = s.players.find(p => p.id === myPlayerId);
+        if (me) {
+            document.getElementById('own-info').innerText = `Chips: ${me.chips} | Bet: ${me.bet}`;
+            const handContainer = document.getElementById('own-hand');
+            handContainer.innerHTML = '';
+
+            // If hand is a number (hidden), we shouldn't be here, but just in case
+            const myHand = Array.isArray(me.hand) ? me.hand : [];
+            myHand.forEach(c => {
+                const cardEl = createCardElement(c);
+                if (c.id === selectedCardId) cardEl.classList.add('selected');
+                handContainer.appendChild(cardEl);
+            });
+
+            document.getElementById('archive-count').innerText = Array.isArray(me.archive) ? me.archive.length : me.archive;
+            const archiveContainer = document.getElementById('own-archive');
+            archiveContainer.innerHTML = '';
+            if (Array.isArray(me.archive) && me.archive.length > 0) {
+                // Show top card
+                archiveContainer.appendChild(createCardElement(me.archive[me.archive.length-1]));
+            }
+        }
+
+        // Opponents
+        const opponents = s.players.filter(p => p.id !== myPlayerId);
+        const spots = ['player-top', 'player-left', 'player-right'];
+        spots.forEach(id => document.getElementById(id).style.display = 'none');
+
+        opponents.forEach((opp, index) => {
+            if (index >= spots.length) return;
+            const spot = document.getElementById(spots[index]);
+            spot.style.display = 'block';
+            if (s.currentTurn === opp.id) spot.classList.add('active-turn');
+            else spot.classList.remove('active-turn');
+
+            let archiveLen = Array.isArray(opp.archive) ? opp.archive.length : opp.archive;
+            // Escape HTML to prevent XSS
+            const safeName = opp.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            spot.innerHTML = `
+                <div class="player-name">${safeName} ${opp.folded ? '(Folded)' : ''}</div>
+                <div class="player-info">Chips: ${opp.chips} | Bet: ${opp.bet}</div>
+                <div class="player-info">Cards: ${opp.hand} | Arch: ${archiveLen}</div>
+                <div class="player-info">Def: ${opp.defenses}</div>
+            `;
+        });
+    }
+
+    // Bind action buttons
+    document.getElementById('btn-check').addEventListener('click', () => sendAction('check'));
+    document.getElementById('btn-call').addEventListener('click', () => sendAction('call'));
+    document.getElementById('btn-raise').addEventListener('click', () => sendAction('raise', { amount: 10 }));
+    document.getElementById('btn-fold').addEventListener('click', () => sendAction('fold'));
+
+    document.getElementById('btn-attack').addEventListener('click', () => {
+        if (selectedCardId) sendAction('attack', { cardId: selectedCardId });
+        else alert('Select a card first!');
+    });
+    document.getElementById('btn-defend').addEventListener('click', () => {
+        if (selectedCardId) sendAction('defend', { cardId: selectedCardId });
+        else alert('Select a card first!');
+    });
+    document.getElementById('btn-decline').addEventListener('click', () => {
+        if (currentState.phase === 'attack') sendAction('skip');
+        else if (currentState.phase === 'defense') sendAction('decline');
+    });
+
+</script>
+</body>
+</html>
