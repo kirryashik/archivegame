@@ -56,20 +56,20 @@ function createDeck() {
 }
 
 wss.on('connection', (ws) => {
-    console.log('Client connected');
+    console.log('Клиент подключился');
 
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message);
             handleMessage(ws, data);
         } catch (e) {
-            console.error('Invalid JSON received:', message, e);
-            ws.send(JSON.stringify({ type: 'error', message: 'Invalid action' }));
+            console.error('Получен неверный JSON:', message, e);
+            ws.send(JSON.stringify({ type: 'error', message: 'Недопустимое действие' }));
         }
     });
 
     ws.on('close', () => {
-        console.log('Client disconnected');
+        console.log('Клиент отключился');
         handleDisconnect(ws);
     });
 });
@@ -129,9 +129,9 @@ function handleMessage(ws, data) {
 
 function getPlayerName(roomId, playerId) {
     const room = rooms.get(roomId);
-    if (!room) return 'Unknown';
+    if (!room) return 'Неизвестно';
     const player = room.players.find(p => p.id === playerId);
-    return player ? player.name : 'Unknown';
+    return player ? player.name : 'Неизвестно';
 }
 
 function joinRoom(ws, roomId, playerName) {
@@ -336,7 +336,7 @@ function handleAttackAction(room, playerId, data) {
             room.combat.defender = room.currentTurn;
 
             // Add action to history for events
-            broadcast(room.roomId, { type: 'event', event: 'cardPlayed', player: player.name, card: card.suit + card.rank });
+            broadcast(room.roomId, { type: 'event', event: 'сыграл карту', player: player.name, card: card.suit + card.rank });
             maybeTriggerBot(room);
         }
     } else if (data.action === 'skip') {
@@ -366,7 +366,7 @@ function handleDefenseAction(room, playerId, data) {
                 // Attack card goes to discard (we just don't put it anywhere, it's removed)
                 player.defenses += 1;
 
-                broadcast(room.roomId, { type: 'event', event: 'defenseSuccess', player: player.name });
+                broadcast(room.roomId, { type: 'event', event: 'успешно защитился', player: player.name });
             } else {
                 // Invalid defense (client shouldn't allow, but if they do)
                 return;
@@ -381,7 +381,7 @@ function handleDefenseAction(room, playerId, data) {
             const dropIdx = Math.floor(Math.random() * player.hand.length);
             player.hand.splice(dropIdx, 1);
         }
-        broadcast(room.roomId, { type: 'event', event: 'attackSuccess', player: attacker.name });
+        broadcast(room.roomId, { type: 'event', event: 'успешная атака', player: attacker.name });
     }
 
     // Move to next attacker
@@ -431,7 +431,7 @@ function evaluateCommunityCards(room) {
 
 
 function evaluateBestHand(cards) {
-    if (cards.length < 5) return { score: 0, name: "High Card" };
+    if (cards.length < 5) return { score: 0, name: "Старшая карта" };
 
     let bestScore = -1;
     let bestName = "";
@@ -480,38 +480,38 @@ function evaluateBestHand(cards) {
         const rankScore = combo.reduce((acc, c, idx) => acc + c.rankValue * Math.pow(15, 4 - idx), 0);
 
         if (isStraight && isFlush) {
-            if (combo[0].rankValue === 14 && combo[1].rankValue === 13) name = "Royal Flush";
-            else name = "Straight Flush";
+            if (combo[0].rankValue === 14 && combo[1].rankValue === 13) name = "Флеш-рояль";
+            else name = "Стрит-флеш";
             score = 8000000 + rankScore;
         } else if (freqs[0] === 4) {
-            name = "Four of a Kind";
+            name = "Каре";
             let quadRank = parseInt(Object.keys(counts).find(k => counts[k] === 4));
             score = 7000000 + quadRank * 10000;
         } else if (freqs[0] === 3 && freqs[1] === 2) {
-            name = "Full House";
+            name = "Фулл-хаус";
             let tripRank = parseInt(Object.keys(counts).find(k => counts[k] === 3));
             score = 6000000 + tripRank * 10000;
         } else if (isFlush) {
-            name = "Flush";
+            name = "Флеш";
             score = 5000000 + rankScore;
         } else if (isStraight) {
-            name = "Straight";
+            name = "Стрит";
             score = 4000000 + rankScore;
         } else if (freqs[0] === 3) {
-            name = "Three of a Kind";
+            name = "Тройка";
             let tripRank = parseInt(Object.keys(counts).find(k => counts[k] === 3));
             score = 3000000 + tripRank * 10000 + rankScore;
         } else if (freqs[0] === 2 && freqs[1] === 2) {
-            name = "Two Pair";
+            name = "Две пары";
             // Need to sort pairs
             let pairs = Object.keys(counts).filter(k => counts[k] === 2).map(Number).sort((a,b)=>b-a);
             score = 2000000 + pairs[0] * 10000 + pairs[1] * 100 + rankScore;
         } else if (freqs[0] === 2) {
-            name = "Pair";
+            name = "Пара";
             let pairRank = parseInt(Object.keys(counts).find(k => counts[k] === 2));
             score = 1000000 + pairRank * 10000 + rankScore;
         } else {
-            name = "High Card";
+            name = "Старшая карта";
             score = rankScore;
         }
 
@@ -528,7 +528,7 @@ function handleShowdown(room) {
     const activePlayers = room.players.filter(p => !p.folded && !p.disconnected);
     let bestScore = -1;
     let winner = null;
-    let bestCombo = "High Card";
+    let bestCombo = "Старшая карта";
     activePlayers.forEach(p => {
         let allCards = [...room.communityCards, ...p.archive];
         let evalHand = evaluateBestHand(allCards);
@@ -563,7 +563,7 @@ function joinBot(roomId) {
     if (!room) return;
     const botId = `bot_${Math.random().toString(36).substring(2, 9)}`;
     room.players.push({
-        id: botId, name: 'AI_Bot', chips: 1000, hand: [], archive: [],
+        id: botId, name: 'Бот', chips: 1000, hand: [], archive: [],
         folded: false, disconnected: false, isReady: true, bet: 0, defenses: 0, isBot: true
     });
     broadcastState(roomId);
@@ -607,7 +607,7 @@ function handleDisconnect(ws) {
             if (player) {
                 player.disconnected = true;
                 player.folded = true; // Auto fold on disconnect for simplicity
-                console.log(`Player ${player.name} disconnected`);
+                console.log(`Игрок ${player.name} отключился`);
 
                 // If it was their turn, advance
                 if (room.currentTurn === player.id) {
