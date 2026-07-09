@@ -41,6 +41,6 @@ http://localhost:8080
 # Инструкция в виде скриншота:
 <img width="963" height="377" alt="image" src="https://github.com/user-attachments/assets/f9d9f308-7f40-4a4f-a516-94dc902a8fb0" />
 
-Сервер: Node.js + WebSocket (библиотека ws)
+**Для игры с друзьями используйте IP-адрес сервера в вашей VPN-сети (Radmin VPN или ZeroTier).**
 
 Сеть: игра по локальной сети или через VPN (Radmin/ZeroTier)
